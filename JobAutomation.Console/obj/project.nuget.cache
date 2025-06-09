@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "dgSpecHash": "TJBtF8EWprw=",
+  "success": true,
+  "projectFilePath": "/Users/toheedali/bbcjobautomation/JobAutomation.Console/JobAutomation.Console.csproj",
+  "expectedPackageFiles": [
+    "/Users/toheedali/.nuget/packages/htmlagilitypack/1.12.1/htmlagilitypack.1.12.1.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/microsoft.csharp/4.7.0/microsoft.csharp.4.7.0.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/microsoft.extensions.configuration/9.0.5/microsoft.extensions.configuration.9.0.5.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/microsoft.extensions.configuration.abstractions/9.0.5/microsoft.extensions.configuration.abstractions.9.0.5.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/microsoft.extensions.configuration.fileextensions/9.0.5/microsoft.extensions.configuration.fileextensions.9.0.5.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/microsoft.extensions.configuration.json/9.0.5/microsoft.extensions.configuration.json.9.0.5.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/microsoft.extensions.dependencyinjection/9.0.5/microsoft.extensions.dependencyinjection.9.0.5.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/9.0.5/microsoft.extensions.dependencyinjection.abstractions.9.0.5.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/microsoft.extensions.fileproviders.abstractions/9.0.5/microsoft.extensions.fileproviders.abstractions.9.0.5.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/microsoft.extensions.fileproviders.physical/9.0.5/microsoft.extensions.fileproviders.physical.9.0.5.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/microsoft.extensions.filesystemglobbing/9.0.5/microsoft.extensions.filesystemglobbing.9.0.5.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/microsoft.extensions.primitives/9.0.5/microsoft.extensions.primitives.9.0.5.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/openai/2.1.0/openai.2.1.0.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/selenium.webdriver/4.33.0/selenium.webdriver.4.33.0.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/selenium.webdriver.chromedriver/137.0.7151.6800/selenium.webdriver.chromedriver.137.0.7151.6800.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/system.clientmodel/1.2.1/system.clientmodel.1.2.1.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/system.diagnostics.diagnosticsource/6.0.1/system.diagnostics.diagnosticsource.6.0.1.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/system.io.pipelines/9.0.5/system.io.pipelines.9.0.5.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/system.memory.data/6.0.0/system.memory.data.6.0.0.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/system.runtime.compilerservices.unsafe/6.0.0/system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/system.text.encodings.web/9.0.5/system.text.encodings.web.9.0.5.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/system.text.json/9.0.5/system.text.json.9.0.5.nupkg.sha512",
+    "/Users/toheedali/.nuget/packages/wordpresspcl/2.1.0/wordpresspcl.2.1.0.nupkg.sha512"
+  ],
+  "logs": []
+}
