@@ -37,11 +37,11 @@ namespace JobAutomation.Console.Services
                 try
                 {
                     // Navigate to Google Jobs directly with software engineer search
-                    driver.Navigate().GoToUrl("https://www.google.com/search?q=jobs&jbr=sep:0");
-                    await Task.Delay(2000); // Wait for the page to load
+                    driver.Navigate().GoToUrl("https://www.google.com/search?q=jobs&jbr=sep:0&udm=8&ved=2ahUKEwj4obOohOWNAxVKnf0HHb8lAeYQ3L8LegQIIxAN");
+                    await Task.Delay(2000); // Increased initial wait time for page load
                     
                     // Wait for the jobs to load with increased timeout
-                    var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
+                    var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(2));
 
                     // Handle the popup if it appears
                     try {
@@ -49,195 +49,207 @@ namespace JobAutomation.Console.Services
                         if (notNowButton != null && notNowButton.Displayed) {
                             System.Console.WriteLine("Found popup, clicking 'Not now'...");
                             notNowButton.Click();
-                            await Task.Delay(2000); // Wait for popup to disappear
+                            await Task.Delay(3000); // Increased wait time after popup
                         }
                     } catch {
-                        // Ignore if no popup found
+                        // No popup found, continue
                         System.Console.WriteLine("No popup found, continuing...");
                     }
 
-                    // Click on "100+ more jobs" span first
-                    try {
-                        var moreJobsSpan = wait.Until(d => d.FindElement(By.CssSelector("span.LGwnxb")));
-                        if (moreJobsSpan != null && moreJobsSpan.Displayed) {
-                            System.Console.WriteLine("Found '100+ more jobs' span, clicking...");
-                            // Scroll into view
-                            ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].scrollIntoView(true);", moreJobsSpan);
-                            await Task.Delay(1000);
-                            
-                            // Try to click
-                            try {
-                                moreJobsSpan.Click();
-                            } catch {
-                                // If regular click fails, try JavaScript click
-                                ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].click();", moreJobsSpan);
-                            }
-                            System.Console.WriteLine("Clicked '100+ more jobs' successfully");
-                            await Task.Delay(2000); // Wait for more jobs to load
-                        }
-                    } catch (Exception ex) {
-                        System.Console.WriteLine($"Error clicking '100+ more jobs': {ex.Message}");
-                    }
+                   
+                    System.Console.WriteLine("Proceeding with job scraping...");
 
-                    // Find all elements with class="EimVGf"
-                    try {
-                        var elements = wait.Until(d => d.FindElements(By.CssSelector("div.EimVGf")));
-                        System.Console.WriteLine($"Found {elements.Count} elements with class='EimVGf'");
-                        
-                        foreach (var element in elements)
-                        {
-                            try {
-                                System.Console.WriteLine("Processing element...");
-                                // Scroll element into view
-                                ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].scrollIntoView(true);", element);
-                                await Task.Delay(1000);
-                                
-                                // Try to click the element
-                                try {
-                                    element.Click();
-                                } catch {
-                                    // If regular click fails, try JavaScript click
-                                    ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].click();", element);
-                                }
-                                
-                                System.Console.WriteLine("Clicked element successfully");
-                                await Task.Delay(2000); // Wait between clicks
-                            } catch (Exception ex) {
-                                System.Console.WriteLine($"Error clicking element: {ex.Message}");
-                            }
-                        }
-                    } catch (Exception ex) {
-                        System.Console.WriteLine($"Error finding elements: {ex.Message}");
-                    }
-                    return jobs;
-                    // Wait for the job cards to be visible
-                    wait.Until(d => 
-                    {
-                        try
-                        {
-                            var jobCards = d.FindElements(By.CssSelector("div.tNxQIb"));
-                            return jobCards.Count > 0;
-                        }
-                        catch
-                        {
-                            return false;
-                        }
-                    });
+                    // Get all job links using class gmxZue
+                    var jobLinks = driver.FindElements(By.CssSelector("span.gmxZue")).ToList();
+                    System.Console.WriteLine($"Found {jobLinks.Count} job listings.");
 
-                    // Click on "100+ more jobs" span
-                    try {
-                        var moreJobsSpan = wait.Until(d => d.FindElement(By.CssSelector("span.LGwnxb")));
-                        if (moreJobsSpan != null && moreJobsSpan.Displayed) {
-                            System.Console.WriteLine("Found '100+ more jobs' span, clicking...");
-                            // Scroll into view
-                            ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].scrollIntoView(true);", moreJobsSpan);
-                            await Task.Delay(1000);
-                            
-                            // Try to click
-                            try {
-                                moreJobsSpan.Click();
-                            } catch {
-                                // If regular click fails, try JavaScript click
-                                ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].click();", moreJobsSpan);
-                            }
-                            System.Console.WriteLine("Clicked '100+ more jobs' successfully");
-                            await Task.Delay(2000); // Wait for more jobs to load
-                        }
-                    } catch (Exception ex) {
-                        System.Console.WriteLine($"Error clicking '100+ more jobs': {ex.Message}");
-                    }
-
-                    // Get all job cards
-                    var jobCards = driver.FindElements(By.CssSelector("div.tNxQIb")).ToList();
-                    System.Console.WriteLine($"Found {jobCards.Count} job listings.");
-
-                    if (jobCards.Count == 0)
+                    if (jobLinks.Count == 0)
                     {
                         System.Console.WriteLine("No job listings found.");
                         return jobs;
                     }
 
-                    bool hasMoreJobs = true;
-                    int processedJobs = 0;
-
-                    while (hasMoreJobs)
+                    for (int i = 0; i < jobLinks.Count; i++)
                     {
                         try
                         {
-                            // Get current job cards
-                            jobCards = driver.FindElements(By.CssSelector("div.tNxQIb")).ToList();
-                            if (jobCards.Count == 0)
+                            // Debug point 1: Start of job processing
+                            System.Diagnostics.Debug.WriteLine($"\n=== Starting to process job {i + 1} ===");
+                            
+                            // Refresh job links list to get fresh elements
+                            jobLinks = driver.FindElements(By.CssSelector("span.gmxZue")).ToList();
+                            if (i >= jobLinks.Count)
                             {
-                                System.Console.WriteLine("No more job listings found.");
+                                System.Console.WriteLine("Job list changed, stopping...");
                                 break;
                             }
 
-                            // Click on the current job
-                            var currentJob = jobCards.First();
-                            System.Console.WriteLine($"\nProcessing job {processedJobs + 1} of {jobCards.Count}");
-                            System.Console.WriteLine($"Job title: {currentJob.Text}");
+                            var jobLink = jobLinks[i];
+                            System.Console.WriteLine($"\nProcessing job {i + 1} of {jobLinks.Count}...");
                             
-                            // Scroll the current job into view and wait for any overlays to disappear
-                            ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].scrollIntoView(true);", currentJob);
-                            await Task.Delay(1000);
+                            // Get the job URL from the parent anchor
+                            var parentAnchor = jobLink.FindElement(By.XPath("./ancestor::a"));
+                            string jobUrl = parentAnchor.GetAttribute("href");
+                            System.Console.WriteLine($"Job URL: {jobUrl}");
 
-                            // Try to remove any overlays that might be intercepting the click
+                            // Debug point 2: Before clicking
+                            System.Diagnostics.Debug.WriteLine($"About to click job link: {jobUrl}");
+
+                            // Click the job link to open side panel using JavaScript
+                            System.Console.WriteLine("Clicking job link...");
                             try {
-                                var overlays = driver.FindElements(By.CssSelector("div.sjVJQd"));
-                                foreach (var overlay in overlays) {
-                                    ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].remove();", overlay);
+                                // First try to click using JavaScript
+                                ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].click();", parentAnchor);
+                                System.Diagnostics.Debug.WriteLine("JavaScript click successful");
+                            } catch (Exception ex) {
+                                System.Diagnostics.Debug.WriteLine($"JavaScript click failed: {ex.Message}");
+                                // If JavaScript click fails, try regular click
+                                try {
+                                    parentAnchor.Click();
+                                    System.Diagnostics.Debug.WriteLine("Regular click successful");
+                                } catch (Exception ex2) {
+                                    System.Diagnostics.Debug.WriteLine($"Regular click failed: {ex2.Message}");
+                                    System.Console.WriteLine("Both click methods failed, trying to navigate directly...");
+                                    driver.Navigate().GoToUrl(jobUrl);
                                 }
-                            } catch {
-                                // Ignore if no overlays found
                             }
+                            
+                            // Wait for the side panel to load
+                            await Task.Delay(3000);
 
-                            // Wait for the job to be clickable
-                            wait.Until(d => 
+                            // Debug point 3: After clicking
+                            System.Diagnostics.Debug.WriteLine("Checking for side panel...");
+
+                            // Wait for the side panel to be visible and loaded
+                            var sidePanel = wait.Until(d => d.FindElement(By.CssSelector("div.tNxQIb.PUpOsf")));
+                            if (sidePanel == null || !sidePanel.Displayed)
                             {
-                                try
-                                {
-                                    return currentJob.Displayed && currentJob.Enabled;
-                                }
-                                catch
-                                {
-                                    return false;
-                                }
-                            });
-
-                            // Try clicking with JavaScript if regular click fails
-                            try {
-                                currentJob.Click();
-                            } catch {
-                                ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].click();", currentJob);
+                                System.Console.WriteLine("Side panel not visible, skipping this job...");
+                                continue;
                             }
-                            
-                            System.Console.WriteLine("Waiting for job details to load...");
+
+                            // Debug point 4: Side panel found
+                            System.Diagnostics.Debug.WriteLine("Side panel found and visible");
+
+                            // Wait a bit more to ensure all content is loaded
                             await Task.Delay(2000);
 
+                            // Force refresh the side panel content
+                            try {
+                                // Scroll the side panel into view
+                                ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].scrollIntoView(true);", sidePanel);
+                                await Task.Delay(1000);
+
+                                // Try to force a refresh of the side panel
+                                ((IJavaScriptExecutor)driver).ExecuteScript(@"
+                                    var event = new Event('scroll');
+                                    window.dispatchEvent(event);
+                                ");
+                                await Task.Delay(1000);
+                                System.Diagnostics.Debug.WriteLine("Side panel refreshed");
+                            } catch (Exception ex) {
+                                System.Diagnostics.Debug.WriteLine($"Failed to refresh side panel: {ex.Message}");
+                                System.Console.WriteLine("Could not refresh side panel");
+                            }
+                            
                             // Extract job information
                             System.Console.WriteLine("Extracting job information...");
                             
-                            var title = GetElementTextWithRetry(driver, wait, By.CssSelector("div.tNxQIb"));
-                            var company = GetElementTextWithRetry(driver, wait, By.CssSelector("div.wHYlTd.MKCbgd.a3jPc"));
-                            var jobLocation = GetElementTextWithRetry(driver, wait, By.CssSelector("div.waQ7qe.cS4Vcb-pGL6qe-ysgGef"));
-                            var description = GetElementTextWithRetry(driver, wait, By.CssSelector("span.hkXmid"));
-                            
-                            string url = string.Empty;
+                            // Clear previous values
+                            string title = string.Empty;
+                            string company = string.Empty;
+                            string jobLocation = string.Empty;
+                            string description = string.Empty;
+
+                            // Debug point 5: Before extracting title
+                            System.Diagnostics.Debug.WriteLine("Attempting to extract title...");
+
+                            // Try to get title first to confirm we're on the right job
                             try {
-                                var applyButton = wait.Until(d => d.FindElement(By.CssSelector("div.nNzjpf-cS4Vcb-PvZLI-Ueh9jd-MJoBVe-bF1uUb")));
-                                if (applyButton != null)
+                                // Force a fresh find of the title element
+                                var titleElement = driver.FindElement(By.CssSelector("div.tNxQIb.PUpOsf"));
+                                title = titleElement.Text;
+                                System.Diagnostics.Debug.WriteLine($"Title element found: {title}");
+                                System.Console.WriteLine($"Raw title element text: {title}");
+                                
+                                if (string.IsNullOrEmpty(title))
                                 {
-                                    var parentAnchor = applyButton.FindElement(By.XPath("./ancestor::a"));
-                                    if (parentAnchor != null)
-                                    {
-                                        url = parentAnchor.GetAttribute("href");
-                                    }
+                                    System.Console.WriteLine("Title is empty, might be wrong job panel, skipping...");
+                                    continue;
                                 }
+                                System.Console.WriteLine($"Found title: {title}");
+                            } catch (Exception ex) {
+                                System.Diagnostics.Debug.WriteLine($"Failed to get title: {ex.Message}");
+                                System.Console.WriteLine($"Could not find job title element: {ex.Message}");
+                                continue;
                             }
-                            catch (Exception ex)
-                            {
-                                System.Console.WriteLine($"Error getting apply URL: {ex.Message}");
+
+                            // Debug point 6: Before extracting company
+                            System.Diagnostics.Debug.WriteLine("Attempting to extract company...");
+
+                            // Now get other details
+                            try {
+                                // Force a fresh find of the company element
+                                var companyElement = driver.FindElement(By.CssSelector("div.wHYlTd.MKCbgd.a3jPc"));
+                                company = companyElement.Text;
+                                System.Diagnostics.Debug.WriteLine($"Company element found: {company}");
+                                System.Console.WriteLine($"Raw company element text: {company}");
+                                System.Console.WriteLine($"Found company: {company}");
+                            } catch (Exception ex) {
+                                System.Diagnostics.Debug.WriteLine($"Failed to get company: {ex.Message}");
+                                System.Console.WriteLine($"Could not find company name element: {ex.Message}");
                             }
+
+                            // Debug point 7: Before extracting location
+                            System.Diagnostics.Debug.WriteLine("Attempting to extract location...");
+
+                            try {
+                                // Force a fresh find of the location element
+                                var locationElement = driver.FindElement(By.CssSelector("div.wHYlTd.FqK3wc.MKCbgd"));
+                                jobLocation = locationElement.Text;
+                                System.Diagnostics.Debug.WriteLine($"Location element found: {jobLocation}");
+                                System.Console.WriteLine($"Raw location element text: {jobLocation}");
+                                System.Console.WriteLine($"Found location: {jobLocation}");
+                            } catch (Exception ex) {
+                                System.Diagnostics.Debug.WriteLine($"Failed to get location: {ex.Message}");
+                                System.Console.WriteLine($"Could not find location element: {ex.Message}");
+                            }
+
+                            // Debug point 8: Before checking description button
+                            System.Diagnostics.Debug.WriteLine("Checking for description button...");
+
+                            // Check for and click "Show full description" button
+                            try {
+                                var showFullDescButton = driver.FindElement(By.CssSelector("span.nNzjpf-cS4Vcb-PvZLI-H2GLj"));
+                                if (showFullDescButton != null && showFullDescButton.Displayed)
+                                {
+                                    System.Console.WriteLine("Found 'Show full description' button, clicking...");
+                                    ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].click();", showFullDescButton);
+                                    await Task.Delay(2000); // Wait for description to expand
+                                    System.Diagnostics.Debug.WriteLine("Description expanded");
+                                }
+                            } catch (Exception ex) {
+                                System.Diagnostics.Debug.WriteLine($"No description button or error: {ex.Message}");
+                                System.Console.WriteLine("No 'Show full description' button found or already expanded");
+                            }
+
+                            // Debug point 9: Before extracting description
+                            System.Diagnostics.Debug.WriteLine("Attempting to extract description...");
+
+                            try {
+                                // Force a fresh find of the description element
+                                var descElement = driver.FindElement(By.CssSelector("span.hkXmid[jsname='QAWWu']"));
+                                description = descElement.Text;
+                                System.Diagnostics.Debug.WriteLine($"Description element found: {description?.Substring(0, Math.Min(100, description.Length))}...");
+                                System.Console.WriteLine($"Raw description element text: {description?.Substring(0, Math.Min(100, description.Length))}...");
+                                System.Console.WriteLine($"Found description: {description?.Substring(0, Math.Min(100, description.Length))}...");
+                            } catch (Exception ex) {
+                                System.Diagnostics.Debug.WriteLine($"Failed to get description: {ex.Message}");
+                                System.Console.WriteLine($"Could not find description element: {ex.Message}");
+                            }
+
+                            // Debug point 10: Before creating job post
+                            System.Diagnostics.Debug.WriteLine("Creating job post object...");
 
                             if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(company))
                             {
@@ -247,129 +259,63 @@ namespace JobAutomation.Console.Services
                                     Company = company,
                                     Location = jobLocation,
                                     Description = description,
-                                    Url = url,
+                                    Url = jobUrl,
                                     PostedDate = DateTime.Now,
                                     SeoOptimizedContent = $"{title} - {company} - {jobLocation}. {description}"
                                 };
-
-                                jobs.Add(jobPost);
 
                                 System.Console.WriteLine("\n=== JOB DETAILS ===");
                                 System.Console.WriteLine("------------------");
                                 System.Console.WriteLine($"Title: {title}");
                                 System.Console.WriteLine($"Company: {company}");
                                 System.Console.WriteLine($"Location: {jobLocation}");
-                                System.Console.WriteLine($"URL: {url}");
+                                System.Console.WriteLine($"URL: {jobUrl}");
                                 System.Console.WriteLine("\nDescription:");
                                 System.Console.WriteLine("------------------");
                                 System.Console.WriteLine(description);
                                 System.Console.WriteLine("------------------");
                                 System.Console.WriteLine("=== END OF JOB DETAILS ===\n");
 
-                                // Comment out WordPress posting for testing
-                                /*
+                                // Debug point 11: Before WordPress posting
+                                System.Diagnostics.Debug.WriteLine("Attempting to post to WordPress...");
+
                                 // Post to WordPress
                                 System.Console.WriteLine("Posting to WordPress...");
                                 try
                                 {
-                                    var success = await _wordPressService.PostJobAsync(jobPost);
+                                    /*  var success = await _wordPressService.PostJobAsync(jobPost);
                                     if (success)
                                     {
                                         System.Console.WriteLine("Successfully posted to WordPress!");
-                                        processedJobs++;
                                     }
                                     else
                                     {
                                         System.Console.WriteLine("Failed to post to WordPress.");
-                                    }
+                                    }*/
                                 }
                                 catch (Exception ex)
                                 {
+                                    System.Diagnostics.Debug.WriteLine($"WordPress posting failed: {ex.Message}");
                                     System.Console.WriteLine($"Error posting to WordPress: {ex.Message}");
                                 }
-                                */
-                                processedJobs++; // Still increment counter for testing
                             }
-
-                            // Try to find and click the next job
-                            System.Console.WriteLine("Looking for next job...");
-                            try
+                            else
                             {
-                                // Get all job cards in the list
-                                var allJobCards = driver.FindElements(By.CssSelector("div.tNxQIb")).ToList();
-                                if (allJobCards.Count > 0)
-                                {
-                                    // Find the index of the current job
-                                    var currentJobIndex = allJobCards.IndexOf(currentJob);
-                                    if (currentJobIndex >= 0 && currentJobIndex < allJobCards.Count - 1)
-                                    {
-                                        // Get the next job in the list
-                                        var nextJob = allJobCards[currentJobIndex + 1];
-                                        System.Console.WriteLine($"Found next job at index {currentJobIndex + 1}, clicking...");
-                                        
-                                        // Scroll the next job into view
-                                        ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].scrollIntoView(true);", nextJob);
-                                        await Task.Delay(1000);
-
-                                        // Try to remove any overlays that might be intercepting the click
-                                        try {
-                                            var overlays = driver.FindElements(By.CssSelector("div.sjVJQd"));
-                                            foreach (var overlay in overlays) {
-                                                ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].remove();", overlay);
-                                            }
-                                        } catch {
-                                            // Ignore if no overlays found
-                                        }
-
-                                        // Wait for the job to be clickable
-                                        wait.Until(d => 
-                                        {
-                                            try
-                                            {
-                                                return nextJob.Displayed && nextJob.Enabled;
-                                            }
-                                            catch
-                                            {
-                                                return false;
-                                            }
-                                        });
-
-                                        // Try clicking with JavaScript if regular click fails
-                                        try {
-                                            nextJob.Click();
-                                        } catch {
-                                            ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].click();", nextJob);
-                                        }
-                                        
-                                        await Task.Delay(2000);
-                                        System.Console.WriteLine("Clicked next job, continuing with new job...");
-                                    }
-                                    else
-                                    {
-                                        System.Console.WriteLine("No more jobs in the list.");
-                                        hasMoreJobs = false;
-                                    }
-                                }
-                                else
-                                {
-                                    System.Console.WriteLine("No job cards found.");
-                                    hasMoreJobs = false;
-                                }
+                                System.Diagnostics.Debug.WriteLine("Skipping job due to missing title or company");
+                                System.Console.WriteLine("Skipping job due to missing title or company...");
                             }
-                            catch (Exception ex)
-                            {
-                                System.Console.WriteLine($"Error finding next job: {ex.Message}");
-                                hasMoreJobs = false;
-                            }
+
+                            // Wait before processing next job
+                            await Task.Delay(2000);
                         }
                         catch (Exception ex)
                         {
-                            System.Console.WriteLine($"Error processing job: {ex.Message}");
-                            hasMoreJobs = false;
+                            System.Diagnostics.Debug.WriteLine($"Error in job processing: {ex.Message}");
+                            System.Console.WriteLine($"Error processing job link: {ex.Message}");
                         }
                     }
 
-                    System.Console.WriteLine($"\nProcessing complete. Total jobs processed: {processedJobs}");
+                    System.Console.WriteLine($"\nProcessing complete. Total jobs processed: {jobs.Count}");
                     System.Console.WriteLine("Press Enter to close the browser and continue...");
                     System.Console.ReadLine();
                 }

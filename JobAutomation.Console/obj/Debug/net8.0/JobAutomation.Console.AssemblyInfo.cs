@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("JobAutomation.Console")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3851cbe26760989a829c6c28ceef76409f4c0d48")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e27a72555e523eee5dba88a580f6f8274da1d1d1")]
 [assembly: System.Reflection.AssemblyProductAttribute("JobAutomation.Console")]
 [assembly: System.Reflection.AssemblyTitleAttribute("JobAutomation.Console")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
