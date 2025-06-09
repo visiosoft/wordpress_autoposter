@@ -23,46 +23,63 @@ namespace JobAutomation.Console
                 var services = new ServiceCollection()
                     .AddSingleton<IConfiguration>(configuration)
                     .AddSingleton<WordPressService>()
+                    .AddSingleton<IJobScraper, GoogleJobsScraper>()
                     .BuildServiceProvider();
 
                 using (var wordPressService = services.GetRequiredService<WordPressService>())
                 {
-                    // Create a test job post
-                    var testJob = new JobPost
-                    {
-                        Title = "Test REST API Post with Focus Keyword",
-                        Company = "Test Company",
-                        Location = "Test Location",
-                        Description = "This is a test description for a job posting that includes a focus keyword for SEO optimization.",
-                        Url = "https://example.com/test-job",
-                        PostedDate = DateTime.Now,
-                        FocusKeyword = "test job posting",
-                        SeoOptimizedContent = @"<h2>Test Job Post</h2>
-<p>This is a test post using the WordPress REST API with application password authentication and focus keyword support.</p>
-<h3>Requirements:</h3>
-<ul>
-    <li>Test requirement 1</li>
-    <li>Test requirement 2</li>
-</ul>
-<h3>Benefits:</h3>
-<ul>
-    <li>Test benefit 1</li>
-    <li>Test benefit 2</li>
-</ul>"
-                    };
-
-                    // Post to WordPress
-                    System.Console.WriteLine("Posting test content to WordPress using REST API...");
-                    var success = await wordPressService.PostJobAsync(testJob);
+                    var googleJobsScraper = services.GetRequiredService<IJobScraper>();
                     
-                    if (success)
+                    // Define search parameters
+                    var searchTerm = "software developer jobs Pakistan since yesterday";
+                    var location = "Pakistan";
+                    
+                    System.Console.WriteLine($"Fetching {searchTerm} jobs in {location} from Google Jobs...");
+                    var jobs = await googleJobsScraper.ScrapeJobsAsync(searchTerm, location);
+                    
+                    System.Console.WriteLine($"\nFound {jobs.Count} jobs. Here are the details:\n");
+                    System.Console.WriteLine("===============================================");
+                    
+                    foreach (var job in jobs)
                     {
-                        System.Console.WriteLine("Successfully posted test content to WordPress.");
+                        System.Console.WriteLine($"Title: {job.Title}");
+                        System.Console.WriteLine($"Company: {job.Company}");
+                        System.Console.WriteLine($"Location: {job.Location}");
+                        System.Console.WriteLine($"URL: {job.Url}");
+                        System.Console.WriteLine($"Description: {job.Description}");
+                        System.Console.WriteLine("===============================================\n");
+                    }
+
+                    System.Console.WriteLine("Would you like to post these jobs to WordPress? (y/n)");
+                    var response = System.Console.ReadLine()?.ToLower();
+                    
+                    if (response == "y")
+                    {
+                        System.Console.WriteLine("\nStarting to post jobs to WordPress...");
+                        
+                        foreach (var job in jobs)
+                        {
+                            System.Console.WriteLine($"\nPosting job: {job.Title} at {job.Company}...");
+                            var success = await wordPressService.PostJobAsync(job);
+                            
+                            if (success)
+                            {
+                                System.Console.WriteLine($"Successfully posted job: {job.Title}");
+                            }
+                            else
+                            {
+                                System.Console.WriteLine($"Failed to post job: {job.Title}");
+                            }
+                            
+                            // Add a small delay between posts to avoid overwhelming the server
+                            await Task.Delay(2000);
+                        }
+                        
+                        System.Console.WriteLine("\nFinished processing all jobs.");
                     }
                     else
                     {
-                        System.Console.WriteLine("Failed to post test content to WordPress. Please check the application password and try again.");
-                        return; // Exit the program if posting failed
+                        System.Console.WriteLine("\nSkipping WordPress posting.");
                     }
                 }
             }

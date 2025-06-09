@@ -38,3 +38,4 @@
 /Users/toheedali/bbcjobautomation/JobAutomation.Console/bin/Debug/net8.0/selenium-manager/macos/selenium-manager
 /Users/toheedali/bbcjobautomation/JobAutomation.Console/bin/Debug/net8.0/selenium-manager/windows/selenium-manager.exe
 /Users/toheedali/bbcjobautomation/JobAutomation.Console/bin/Debug/net8.0/WebDriver.dll
+/Users/toheedali/bbcjobautomation/JobAutomation.Console/obj/Debug/net8.0/JobAutomation.Console.sourcelink.json
