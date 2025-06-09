@@ -166,8 +166,11 @@ namespace JobAutomation.Console.Services
 
                             // Try to get title first to confirm we're on the right job
                             try {
-                                // Force a fresh find of the title element
-                                var titleElement = driver.FindElement(By.CssSelector("div.tNxQIb.PUpOsf"));
+                                // Get the parent anchor of the current job link
+                                var currentJobAnchor = jobLinks[i].FindElement(By.XPath("./ancestor::a"));
+                                
+                                // Find the title element within this specific job's context
+                                var titleElement = currentJobAnchor.FindElement(By.CssSelector("div.tNxQIb.PUpOsf"));
                                 title = titleElement.Text;
                                 System.Diagnostics.Debug.WriteLine($"Title element found: {title}");
                                 System.Console.WriteLine($"Raw title element text: {title}");
@@ -178,41 +181,73 @@ namespace JobAutomation.Console.Services
                                     continue;
                                 }
                                 System.Console.WriteLine($"Found title: {title}");
+
+                                // Now get other details within the same job context
+                                try {
+                                    var companyElement = currentJobAnchor.FindElement(By.CssSelector("div.wHYlTd.MKCbgd.a3jPc"));
+                                    company = companyElement.Text;
+                                    System.Diagnostics.Debug.WriteLine($"Company element found: {company}");
+                                    System.Console.WriteLine($"Raw company element text: {company}");
+                                    System.Console.WriteLine($"Found company: {company}");
+                                } catch (Exception ex) {
+                                    System.Diagnostics.Debug.WriteLine($"Failed to get company: {ex.Message}");
+                                    System.Console.WriteLine($"Could not find company name element: {ex.Message}");
+                                }
+
+                                try {
+                                    var locationElement = currentJobAnchor.FindElement(By.CssSelector("div.wHYlTd.FqK3wc.MKCbgd"));
+                                    jobLocation = locationElement.Text;
+                                    System.Diagnostics.Debug.WriteLine($"Location element found: {jobLocation}");
+                                    System.Console.WriteLine($"Raw location element text: {jobLocation}");
+                                    System.Console.WriteLine($"Found location: {jobLocation}");
+                                } catch (Exception ex) {
+                                    System.Diagnostics.Debug.WriteLine($"Failed to get location: {ex.Message}");
+                                    System.Console.WriteLine($"Could not find location element: {ex.Message}");
+                                }
+
+                                // Try to get description within the same job context
+                                try {
+                                    // Try multiple selectors for the description within the current job context
+                                    IWebElement descElement = null;
+                                    try {
+                                        // First try the exact selector within current job
+                                        descElement = currentJobAnchor.FindElement(By.CssSelector("span.hkXmid[jsname='QAWWu']"));
+                                    } catch {
+                                        try {
+                                            // Try alternative selector within current job
+                                            descElement = currentJobAnchor.FindElement(By.CssSelector("span.hkXmid"));
+                                        } catch {
+                                            // Try finding by class only within current job
+                                            descElement = currentJobAnchor.FindElement(By.ClassName("hkXmid"));
+                                        }
+                                    }
+
+                                    if (descElement != null)
+                                    {
+                                        description = descElement.Text;
+                                        // Clean up the description text
+                                        description = description.Replace("\n", " ")
+                                                               .Replace("\r", " ")
+                                                               .Replace("  ", " ")
+                                                               .Trim();
+                                        
+                                        System.Diagnostics.Debug.WriteLine($"Description element found: {description?.Substring(0, Math.Min(100, description.Length))}...");
+                                        System.Console.WriteLine($"Raw description element text: {description?.Substring(0, Math.Min(100, description.Length))}...");
+                                        System.Console.WriteLine($"Found description: {description?.Substring(0, Math.Min(100, description.Length))}...");
+                                    }
+                                    else
+                                    {
+                                        System.Diagnostics.Debug.WriteLine("Description element not found with any selector");
+                                        System.Console.WriteLine("Could not find description element with any selector");
+                                    }
+                                } catch (Exception ex) {
+                                    System.Diagnostics.Debug.WriteLine($"Failed to get description: {ex.Message}");
+                                    System.Console.WriteLine($"Could not find description element: {ex.Message}");
+                                }
                             } catch (Exception ex) {
-                                System.Diagnostics.Debug.WriteLine($"Failed to get title: {ex.Message}");
-                                System.Console.WriteLine($"Could not find job title element: {ex.Message}");
+                                System.Diagnostics.Debug.WriteLine($"Failed to get job details: {ex.Message}");
+                                System.Console.WriteLine($"Could not find job details: {ex.Message}");
                                 continue;
-                            }
-
-                            // Debug point 6: Before extracting company
-                            System.Diagnostics.Debug.WriteLine("Attempting to extract company...");
-
-                            // Now get other details
-                            try {
-                                // Force a fresh find of the company element
-                                var companyElement = driver.FindElement(By.CssSelector("div.wHYlTd.MKCbgd.a3jPc"));
-                                company = companyElement.Text;
-                                System.Diagnostics.Debug.WriteLine($"Company element found: {company}");
-                                System.Console.WriteLine($"Raw company element text: {company}");
-                                System.Console.WriteLine($"Found company: {company}");
-                            } catch (Exception ex) {
-                                System.Diagnostics.Debug.WriteLine($"Failed to get company: {ex.Message}");
-                                System.Console.WriteLine($"Could not find company name element: {ex.Message}");
-                            }
-
-                            // Debug point 7: Before extracting location
-                            System.Diagnostics.Debug.WriteLine("Attempting to extract location...");
-
-                            try {
-                                // Force a fresh find of the location element
-                                var locationElement = driver.FindElement(By.CssSelector("div.wHYlTd.FqK3wc.MKCbgd"));
-                                jobLocation = locationElement.Text;
-                                System.Diagnostics.Debug.WriteLine($"Location element found: {jobLocation}");
-                                System.Console.WriteLine($"Raw location element text: {jobLocation}");
-                                System.Console.WriteLine($"Found location: {jobLocation}");
-                            } catch (Exception ex) {
-                                System.Diagnostics.Debug.WriteLine($"Failed to get location: {ex.Message}");
-                                System.Console.WriteLine($"Could not find location element: {ex.Message}");
                             }
 
                             // Debug point 8: Before checking description button
@@ -237,15 +272,88 @@ namespace JobAutomation.Console.Services
                             System.Diagnostics.Debug.WriteLine("Attempting to extract description...");
 
                             try {
-                                // Force a fresh find of the description element
-                                var descElement = driver.FindElement(By.CssSelector("span.hkXmid[jsname='QAWWu']"));
-                                description = descElement.Text;
-                                System.Diagnostics.Debug.WriteLine($"Description element found: {description?.Substring(0, Math.Min(100, description.Length))}...");
-                                System.Console.WriteLine($"Raw description element text: {description?.Substring(0, Math.Min(100, description.Length))}...");
-                                System.Console.WriteLine($"Found description: {description?.Substring(0, Math.Min(100, description.Length))}...");
+                                // Get the parent anchor of the current job link
+                                var currentJobAnchor = jobLinks[i].FindElement(By.XPath("./ancestor::a"));
+                                
+                                // Find the title element within this specific job's context
+                                var titleElement = currentJobAnchor.FindElement(By.CssSelector("div.tNxQIb.PUpOsf"));
+                                title = titleElement.Text;
+                                System.Diagnostics.Debug.WriteLine($"Title element found: {title}");
+                                System.Console.WriteLine($"Raw title element text: {title}");
+                                
+                                if (string.IsNullOrEmpty(title))
+                                {
+                                    System.Console.WriteLine("Title is empty, might be wrong job panel, skipping...");
+                                    continue;
+                                }
+                                System.Console.WriteLine($"Found title: {title}");
+
+                                // Now get other details within the same job context
+                                try {
+                                    var companyElement = currentJobAnchor.FindElement(By.CssSelector("div.wHYlTd.MKCbgd.a3jPc"));
+                                    company = companyElement.Text;
+                                    System.Diagnostics.Debug.WriteLine($"Company element found: {company}");
+                                    System.Console.WriteLine($"Raw company element text: {company}");
+                                    System.Console.WriteLine($"Found company: {company}");
+                                } catch (Exception ex) {
+                                    System.Diagnostics.Debug.WriteLine($"Failed to get company: {ex.Message}");
+                                    System.Console.WriteLine($"Could not find company name element: {ex.Message}");
+                                }
+
+                                try {
+                                    var locationElement = currentJobAnchor.FindElement(By.CssSelector("div.wHYlTd.FqK3wc.MKCbgd"));
+                                    jobLocation = locationElement.Text;
+                                    System.Diagnostics.Debug.WriteLine($"Location element found: {jobLocation}");
+                                    System.Console.WriteLine($"Raw location element text: {jobLocation}");
+                                    System.Console.WriteLine($"Found location: {jobLocation}");
+                                } catch (Exception ex) {
+                                    System.Diagnostics.Debug.WriteLine($"Failed to get location: {ex.Message}");
+                                    System.Console.WriteLine($"Could not find location element: {ex.Message}");
+                                }
+
+                                // Try to get description within the same job context
+                                try {
+                                    // Try multiple selectors for the description within the current job context
+                                    IWebElement descElement = null;
+                                    try {
+                                        // First try the exact selector within current job
+                                        descElement = currentJobAnchor.FindElement(By.CssSelector("span.hkXmid[jsname='QAWWu']"));
+                                    } catch {
+                                        try {
+                                            // Try alternative selector within current job
+                                            descElement = currentJobAnchor.FindElement(By.CssSelector("span.hkXmid"));
+                                        } catch {
+                                            // Try finding by class only within current job
+                                            descElement = currentJobAnchor.FindElement(By.ClassName("hkXmid"));
+                                        }
+                                    }
+
+                                    if (descElement != null)
+                                    {
+                                        description = descElement.Text;
+                                        // Clean up the description text
+                                        description = description.Replace("\n", " ")
+                                                               .Replace("\r", " ")
+                                                               .Replace("  ", " ")
+                                                               .Trim();
+                                        
+                                        System.Diagnostics.Debug.WriteLine($"Description element found: {description?.Substring(0, Math.Min(100, description.Length))}...");
+                                        System.Console.WriteLine($"Raw description element text: {description?.Substring(0, Math.Min(100, description.Length))}...");
+                                        System.Console.WriteLine($"Found description: {description?.Substring(0, Math.Min(100, description.Length))}...");
+                                    }
+                                    else
+                                    {
+                                        System.Diagnostics.Debug.WriteLine("Description element not found with any selector");
+                                        System.Console.WriteLine("Could not find description element with any selector");
+                                    }
+                                } catch (Exception ex) {
+                                    System.Diagnostics.Debug.WriteLine($"Failed to get description: {ex.Message}");
+                                    System.Console.WriteLine($"Could not find description element: {ex.Message}");
+                                }
                             } catch (Exception ex) {
-                                System.Diagnostics.Debug.WriteLine($"Failed to get description: {ex.Message}");
-                                System.Console.WriteLine($"Could not find description element: {ex.Message}");
+                                System.Diagnostics.Debug.WriteLine($"Failed to get job details: {ex.Message}");
+                                System.Console.WriteLine($"Could not find job details: {ex.Message}");
+                                continue;
                             }
 
                             // Debug point 10: Before creating job post
