@@ -37,11 +37,23 @@ namespace JobAutomation.Console.Services
                 try
                 {
                     // Navigate to Google Jobs directly with software engineer search
-                    driver.Navigate().GoToUrl("https://www.google.com/search?q=jobs&jbr=sep:0&udm=8&ved=2ahUKEwj4obOohOWNAxVKnf0HHb8lAeYQ3L8LegQIIxAN");
-                    await Task.Delay(2000); // Increased initial wait time for page load
+                    driver.Navigate().GoToUrl("https://www.google.com/search?q=software+engineer+jobs&jbr=sep:0&udm=8&ved=2ahUKEwj4obOohOWNAxVKnf0HHb8lAeYQ3L8LegQIIxAN");
+                    await Task.Delay(5000); // Increased initial wait time for page load
+                    
+                    // Check for captcha verification
+                    if (driver.Url.Contains("captcha") || driver.Url.Contains("sorry"))
+                    {
+                        System.Console.WriteLine("\nCaptcha verification detected!");
+                        System.Console.WriteLine("Please complete the verification in the browser window.");
+                        System.Console.WriteLine("Press Enter after completing the verification...");
+                        System.Console.ReadLine();
+                        
+                        // Wait a bit after verification
+                        await Task.Delay(5000);
+                    }
                     
                     // Wait for the jobs to load with increased timeout
-                    var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(2));
+                    var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
 
                     // Handle the popup if it appears
                     try {
@@ -56,11 +68,10 @@ namespace JobAutomation.Console.Services
                         System.Console.WriteLine("No popup found, continuing...");
                     }
 
-                   
                     System.Console.WriteLine("Proceeding with job scraping...");
 
                     // Get all job links using class gmxZue
-                    var jobLinks = driver.FindElements(By.CssSelector("span.gmxZue")).ToList();
+                    var jobLinks = wait.Until(d => d.FindElements(By.CssSelector("span.gmxZue")).ToList());
                     System.Console.WriteLine($"Found {jobLinks.Count} job listings.");
 
                     if (jobLinks.Count == 0)
@@ -205,151 +216,90 @@ namespace JobAutomation.Console.Services
                                     System.Console.WriteLine($"Could not find location element: {ex.Message}");
                                 }
 
-                                // Try to get description within the same job context
+                                // Try to get description
                                 try {
-                                    // Try multiple selectors for the description within the current job context
-                                    IWebElement descElement = null;
-                                    try {
-                                        // First try the exact selector within current job
-                                        descElement = currentJobAnchor.FindElement(By.CssSelector("span.hkXmid[jsname='QAWWu']"));
-                                    } catch {
-                                        try {
-                                            // Try alternative selector within current job
-                                            descElement = currentJobAnchor.FindElement(By.CssSelector("span.hkXmid"));
-                                        } catch {
-                                            // Try finding by class only within current job
-                                            descElement = currentJobAnchor.FindElement(By.ClassName("hkXmid"));
+                                    System.Console.WriteLine("\n=== Starting Description Extraction ===");
+                                    
+                                   
+
+                                    // Wait a bit for the description to load
+                                    await Task.Delay(2000);
+
+                                    // Try to find the description using the full CSS selector path
+                                    try
+                                    {
+                                        System.Console.WriteLine("Looking for description with full CSS selector path...");
+                                        // Create a longer wait specifically for description
+                                        var descWait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+                                        
+                                        // Try to find the description element using the full CSS selector path
+                                        var descElement = descWait.Until(d => {
+                                            var element = driver.FindElement(By.CssSelector("#Sva75c > div.A8mJGd.NDuZHe > div.LrPjRb > div > div.BIB1wf.EIehLd.fHE6De.Emjfjd > c-wiz > div > c-wiz:nth-child(1) > c-wiz > c-wiz > div:nth-child(6) > div > span.hkXmid"));
+                                            if (element != null && element.Displayed)
+                                            {
+                                                System.Console.WriteLine("Found description element with full CSS selector path");
+                                                return element;
+                                            }
+                                            throw new NoSuchElementException("Description element not found");
+                                        });
+
+                                        // Get the description text
+                                        description = descElement.Text;
+                                        if (!string.IsNullOrEmpty(description))
+                                        {
+                                            System.Console.WriteLine($"Description length: {description.Length} characters");
+                                            System.Console.WriteLine($"Description preview: {description.Substring(0, Math.Min(100, description.Length))}...");
+                                        }
+                                        else
+                                        {
+                                            // Try to get innerHTML if text is empty
+                                            var innerHtml = descElement.GetAttribute("innerHTML");
+                                            if (!string.IsNullOrEmpty(innerHtml))
+                                            {
+                                                description = innerHtml.Replace("<br>", "\n")
+                                                                     .Replace("<br/>", "\n")
+                                                                     .Replace("<br />", "\n")
+                                                                     .Replace("&amp;", "&")
+                                                                     .Trim();
+                                                System.Console.WriteLine("Got description from innerHTML");
+                                                System.Console.WriteLine($"Description length: {description.Length} characters");
+                                                System.Console.WriteLine($"Description preview: {description.Substring(0, Math.Min(100, description.Length))}...");
+                                            }
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        System.Console.WriteLine($"Failed to find description with full CSS selector path: {ex.Message}");
+                                        // Try to get the entire panel text as fallback
+                                        try
+                                        {
+                                            description = sidePanel.Text;
+                                            if (!string.IsNullOrEmpty(description))
+                                            {
+                                                System.Console.WriteLine("Using panel text as description");
+                                                System.Console.WriteLine($"Description length: {description.Length} characters");
+                                                System.Console.WriteLine($"Description preview: {description.Substring(0, Math.Min(100, description.Length))}...");
+                                            }
+                                        }
+                                        catch (Exception ex2)
+                                        {
+                                            System.Console.WriteLine($"Failed to get panel text: {ex2.Message}");
                                         }
                                     }
 
-                                    if (descElement != null)
+                                    if (string.IsNullOrEmpty(description))
                                     {
-                                        description = descElement.Text;
-                                        // Clean up the description text
-                                        description = description.Replace("\n", " ")
-                                                               .Replace("\r", " ")
-                                                               .Replace("  ", " ")
-                                                               .Trim();
-                                        
-                                        System.Diagnostics.Debug.WriteLine($"Description element found: {description?.Substring(0, Math.Min(100, description.Length))}...");
-                                        System.Console.WriteLine($"Raw description element text: {description?.Substring(0, Math.Min(100, description.Length))}...");
-                                        System.Console.WriteLine($"Found description: {description?.Substring(0, Math.Min(100, description.Length))}...");
+                                        System.Console.WriteLine("Could not find description");
+                                        description = "Description not found";
                                     }
-                                    else
-                                    {
-                                        System.Diagnostics.Debug.WriteLine("Description element not found with any selector");
-                                        System.Console.WriteLine("Could not find description element with any selector");
-                                    }
-                                } catch (Exception ex) {
-                                    System.Diagnostics.Debug.WriteLine($"Failed to get description: {ex.Message}");
-                                    System.Console.WriteLine($"Could not find description element: {ex.Message}");
                                 }
-                            } catch (Exception ex) {
-                                System.Diagnostics.Debug.WriteLine($"Failed to get job details: {ex.Message}");
-                                System.Console.WriteLine($"Could not find job details: {ex.Message}");
-                                continue;
-                            }
-
-                            // Debug point 8: Before checking description button
-                            System.Diagnostics.Debug.WriteLine("Checking for description button...");
-
-                            // Check for and click "Show full description" button
-                            try {
-                                var showFullDescButton = driver.FindElement(By.CssSelector("span.nNzjpf-cS4Vcb-PvZLI-H2GLj"));
-                                if (showFullDescButton != null && showFullDescButton.Displayed)
+                                catch (Exception ex)
                                 {
-                                    System.Console.WriteLine("Found 'Show full description' button, clicking...");
-                                    ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].click();", showFullDescButton);
-                                    await Task.Delay(2000); // Wait for description to expand
-                                    System.Diagnostics.Debug.WriteLine("Description expanded");
+                                    System.Console.WriteLine($"Failed to find description: {ex.Message}");
+                                    description = "Description not found";
                                 }
-                            } catch (Exception ex) {
-                                System.Diagnostics.Debug.WriteLine($"No description button or error: {ex.Message}");
-                                System.Console.WriteLine("No 'Show full description' button found or already expanded");
-                            }
-
-                            // Debug point 9: Before extracting description
-                            System.Diagnostics.Debug.WriteLine("Attempting to extract description...");
-
-                            try {
-                                // Get the parent anchor of the current job link
-                                var currentJobAnchor = jobLinks[i].FindElement(By.XPath("./ancestor::a"));
-                                
-                                // Find the title element within this specific job's context
-                                var titleElement = currentJobAnchor.FindElement(By.CssSelector("div.tNxQIb.PUpOsf"));
-                                title = titleElement.Text;
-                                System.Diagnostics.Debug.WriteLine($"Title element found: {title}");
-                                System.Console.WriteLine($"Raw title element text: {title}");
-                                
-                                if (string.IsNullOrEmpty(title))
-                                {
-                                    System.Console.WriteLine("Title is empty, might be wrong job panel, skipping...");
-                                    continue;
-                                }
-                                System.Console.WriteLine($"Found title: {title}");
-
-                                // Now get other details within the same job context
-                                try {
-                                    var companyElement = currentJobAnchor.FindElement(By.CssSelector("div.wHYlTd.MKCbgd.a3jPc"));
-                                    company = companyElement.Text;
-                                    System.Diagnostics.Debug.WriteLine($"Company element found: {company}");
-                                    System.Console.WriteLine($"Raw company element text: {company}");
-                                    System.Console.WriteLine($"Found company: {company}");
-                                } catch (Exception ex) {
-                                    System.Diagnostics.Debug.WriteLine($"Failed to get company: {ex.Message}");
-                                    System.Console.WriteLine($"Could not find company name element: {ex.Message}");
-                                }
-
-                                try {
-                                    var locationElement = currentJobAnchor.FindElement(By.CssSelector("div.wHYlTd.FqK3wc.MKCbgd"));
-                                    jobLocation = locationElement.Text;
-                                    System.Diagnostics.Debug.WriteLine($"Location element found: {jobLocation}");
-                                    System.Console.WriteLine($"Raw location element text: {jobLocation}");
-                                    System.Console.WriteLine($"Found location: {jobLocation}");
-                                } catch (Exception ex) {
-                                    System.Diagnostics.Debug.WriteLine($"Failed to get location: {ex.Message}");
-                                    System.Console.WriteLine($"Could not find location element: {ex.Message}");
-                                }
-
-                                // Try to get description within the same job context
-                                try {
-                                    // Try multiple selectors for the description within the current job context
-                                    IWebElement descElement = null;
-                                    try {
-                                        // First try the exact selector within current job
-                                        descElement = currentJobAnchor.FindElement(By.CssSelector("span.hkXmid[jsname='QAWWu']"));
-                                    } catch {
-                                        try {
-                                            // Try alternative selector within current job
-                                            descElement = currentJobAnchor.FindElement(By.CssSelector("span.hkXmid"));
-                                        } catch {
-                                            // Try finding by class only within current job
-                                            descElement = currentJobAnchor.FindElement(By.ClassName("hkXmid"));
-                                        }
-                                    }
-
-                                    if (descElement != null)
-                                    {
-                                        description = descElement.Text;
-                                        // Clean up the description text
-                                        description = description.Replace("\n", " ")
-                                                               .Replace("\r", " ")
-                                                               .Replace("  ", " ")
-                                                               .Trim();
-                                        
-                                        System.Diagnostics.Debug.WriteLine($"Description element found: {description?.Substring(0, Math.Min(100, description.Length))}...");
-                                        System.Console.WriteLine($"Raw description element text: {description?.Substring(0, Math.Min(100, description.Length))}...");
-                                        System.Console.WriteLine($"Found description: {description?.Substring(0, Math.Min(100, description.Length))}...");
-                                    }
-                                    else
-                                    {
-                                        System.Diagnostics.Debug.WriteLine("Description element not found with any selector");
-                                        System.Console.WriteLine("Could not find description element with any selector");
-                                    }
-                                } catch (Exception ex) {
-                                    System.Diagnostics.Debug.WriteLine($"Failed to get description: {ex.Message}");
-                                    System.Console.WriteLine($"Could not find description element: {ex.Message}");
-                                }
+                                System.Console.WriteLine("=== End Description Extraction ===\n");
+                            
                             } catch (Exception ex) {
                                 System.Diagnostics.Debug.WriteLine($"Failed to get job details: {ex.Message}");
                                 System.Console.WriteLine($"Could not find job details: {ex.Message}");
