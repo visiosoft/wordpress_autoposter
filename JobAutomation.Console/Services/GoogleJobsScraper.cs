@@ -220,39 +220,34 @@ namespace JobAutomation.Console.Services
                                 try {
                                     System.Console.WriteLine("\n=== Starting Description Extraction ===");
                                     
-                                   
-
                                     // Wait a bit for the description to load
                                     await Task.Delay(2000);
 
-                                    // Try to find the description using the full CSS selector path
+                                    // Create a longer wait specifically for description
+                                    var descWait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+                                    
+                                    // Try to get first description
                                     try
                                     {
-                                        System.Console.WriteLine("Looking for description with full CSS selector path...");
-                                        // Create a longer wait specifically for description
-                                        var descWait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
-                                        
-                                        // Try to find the description element using the full CSS selector path
+                                        System.Console.WriteLine("Looking for first description...");
                                         var descElement = descWait.Until(d => {
                                             var element = driver.FindElement(By.CssSelector("#Sva75c > div.A8mJGd.NDuZHe > div.LrPjRb > div > div.BIB1wf.EIehLd.fHE6De.Emjfjd > c-wiz > div > c-wiz:nth-child(1) > c-wiz > c-wiz > div:nth-child(6) > div > span.hkXmid"));
                                             if (element != null && element.Displayed)
                                             {
-                                                System.Console.WriteLine("Found description element with full CSS selector path");
+                                                System.Console.WriteLine("Found first description element");
                                                 return element;
                                             }
-                                            throw new NoSuchElementException("Description element not found");
+                                            throw new NoSuchElementException("First description element not found");
                                         });
 
-                                        // Get the description text
                                         description = descElement.Text;
                                         if (!string.IsNullOrEmpty(description))
                                         {
-                                            System.Console.WriteLine($"Description length: {description.Length} characters");
-                                            System.Console.WriteLine($"Description preview: {description.Substring(0, Math.Min(100, description.Length))}...");
+                                            System.Console.WriteLine($"First description length: {description.Length} characters");
+                                            System.Console.WriteLine($"First description: {description}");
                                         }
                                         else
                                         {
-                                            // Try to get innerHTML if text is empty
                                             var innerHtml = descElement.GetAttribute("innerHTML");
                                             if (!string.IsNullOrEmpty(innerHtml))
                                             {
@@ -261,41 +256,124 @@ namespace JobAutomation.Console.Services
                                                                      .Replace("<br />", "\n")
                                                                      .Replace("&amp;", "&")
                                                                      .Trim();
-                                                System.Console.WriteLine("Got description from innerHTML");
-                                                System.Console.WriteLine($"Description length: {description.Length} characters");
-                                                System.Console.WriteLine($"Description preview: {description.Substring(0, Math.Min(100, description.Length))}...");
+                                                System.Console.WriteLine("Got first description from innerHTML");
+                                                System.Console.WriteLine($"First description length: {description.Length} characters");
+                                                System.Console.WriteLine($"First description: {description}");
                                             }
                                         }
                                     }
                                     catch (Exception ex)
                                     {
-                                        System.Console.WriteLine($"Failed to find description with full CSS selector path: {ex.Message}");
-                                        // Try to get the entire panel text as fallback
-                                        try
+                                        System.Console.WriteLine($"Failed to find first description: {ex.Message}");
+                                    }
+
+                                    // Try to get second description
+                                    try
+                                    {
+                                        System.Console.WriteLine("\nLooking for second description...");
+                                        var descElement2 = descWait.Until(d => {
+                                            try {
+                                                var element = driver.FindElement(By.CssSelector("#Sva75c > div.A8mJGd.NDuZHe > div.LrPjRb > div > div.BIB1wf.EIehLd.fHE6De.Emjfjd > c-wiz > div > c-wiz:nth-child(1) > c-wiz > c-wiz > div:nth-child(6) > div > span.us2QZb"));
+                                                if (element != null)
+                                                {
+                                                    System.Console.WriteLine("Found second description element");
+                                                    return element;
+                                                }
+                                            } catch (Exception ex) {
+                                                System.Console.WriteLine($"Error finding second description element: {ex.Message}");
+                                            }
+                                            throw new NoSuchElementException("Second description element not found");
+                                        });
+
+                                        // Try to get text even if element is not displayed
+                                        string description2 = "";
+                                        try {
+                                            description2 = descElement2.Text;
+                                            System.Console.WriteLine("Got text from second description element");
+                                        } catch (Exception ex) {
+                                            System.Console.WriteLine($"Error getting text from second description: {ex.Message}");
+                                        }
+
+                                        if (!string.IsNullOrEmpty(description2))
                                         {
-                                            description = sidePanel.Text;
+                                            System.Console.WriteLine($"Second description length: {description2.Length} characters");
+                                            System.Console.WriteLine($"Second description: {description2}");
+                                            
+                                            // Combine both descriptions if first one exists
                                             if (!string.IsNullOrEmpty(description))
                                             {
-                                                System.Console.WriteLine("Using panel text as description");
-                                                System.Console.WriteLine($"Description length: {description.Length} characters");
-                                                System.Console.WriteLine($"Description preview: {description.Substring(0, Math.Min(100, description.Length))}...");
+                                                description = description + "\n\n" + description2;
+                                                System.Console.WriteLine("Combined both descriptions");
+                                            }
+                                            else
+                                            {
+                                                description = description2;
                                             }
                                         }
-                                        catch (Exception ex2)
+                                        else
                                         {
-                                            System.Console.WriteLine($"Failed to get panel text: {ex2.Message}");
+                                            // Try to get innerHTML even if element is not displayed
+                                            try {
+                                                var innerHtml = descElement2.GetAttribute("innerHTML");
+                                                if (!string.IsNullOrEmpty(innerHtml))
+                                                {
+                                                    var desc2 = innerHtml.Replace("<br>", "\n")
+                                                                       .Replace("<br/>", "\n")
+                                                                       .Replace("<br />", "\n")
+                                                                       .Replace("&amp;", "&")
+                                                                       .Trim();
+                                                    System.Console.WriteLine("Got second description from innerHTML");
+                                                    System.Console.WriteLine($"Second description length: {desc2.Length} characters");
+                                                    System.Console.WriteLine($"Second description: {desc2}");
+                                                    
+                                                    // Combine both descriptions if first one exists
+                                                    if (!string.IsNullOrEmpty(description))
+                                                    {
+                                                        description = description + "\n\n" + desc2;
+                                                        System.Console.WriteLine("Combined both descriptions");
+                                                    }
+                                                    else
+                                                    {
+                                                        description = desc2;
+                                                    }
+                                                }
+                                            } catch (Exception ex) {
+                                                System.Console.WriteLine($"Error getting innerHTML from second description: {ex.Message}");
+                                            }
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        System.Console.WriteLine($"Failed to find second description: {ex.Message}");
+                                        // Try one more time with a different approach
+                                        try {
+                                            var elements = driver.FindElements(By.CssSelector("span.us2QZb"));
+                                            if (elements != null && elements.Count > 0) {
+                                                var element = elements[0];
+                                                var text = element.Text;
+                                                if (!string.IsNullOrEmpty(text)) {
+                                                    System.Console.WriteLine("Found second description using alternative method");
+                                                    if (!string.IsNullOrEmpty(description)) {
+                                                        description = description + "\n\n" + text;
+                                                    } else {
+                                                        description = text;
+                                                    }
+                                                }
+                                            }
+                                        } catch (Exception ex2) {
+                                            System.Console.WriteLine($"Failed to find second description with alternative method: {ex2.Message}");
                                         }
                                     }
 
                                     if (string.IsNullOrEmpty(description))
                                     {
-                                        System.Console.WriteLine("Could not find description");
+                                        System.Console.WriteLine("Could not find any description");
                                         description = "Description not found";
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    System.Console.WriteLine($"Failed to find description: {ex.Message}");
+                                    System.Console.WriteLine($"Failed to find descriptions: {ex.Message}");
                                     description = "Description not found";
                                 }
                                 System.Console.WriteLine("=== End Description Extraction ===\n");
@@ -341,7 +419,7 @@ namespace JobAutomation.Console.Services
                                 System.Console.WriteLine("Posting to WordPress...");
                                 try
                                 {
-                                    /*  var success = await _wordPressService.PostJobAsync(jobPost);
+                                      var success = await _wordPressService.PostJobAsync(jobPost);
                                     if (success)
                                     {
                                         System.Console.WriteLine("Successfully posted to WordPress!");
@@ -349,7 +427,7 @@ namespace JobAutomation.Console.Services
                                     else
                                     {
                                         System.Console.WriteLine("Failed to post to WordPress.");
-                                    }*/
+                                    }
                                 }
                                 catch (Exception ex)
                                 {
